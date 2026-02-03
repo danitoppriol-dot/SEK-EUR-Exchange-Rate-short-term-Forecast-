@@ -17,7 +17,6 @@ warnings.filterwarnings('ignore')
 import matplotlib.pyplot as plt
 from datetime import datetime, timedelta
 
-# Deep Learning
 from tensorflow.keras.models import Sequential
 from tensorflow.keras.layers import LSTM, Dense, Dropout, Bidirectional, Attention
 from tensorflow.keras.callbacks import EarlyStopping, ReduceLROnPlateau
@@ -33,11 +32,8 @@ try:
     PROPHET_AVAILABLE = True
 except:
     PROPHET_AVAILABLE = False
-    print("⚠️  Prophet not installed - skipping seasonal decomposition")
+    print(" Prophet not installed - skipping seasonal decomposition")
 
-# ============================================================================
-# CONFIGURATION
-# ============================================================================
 TODAY = datetime.now()
 START_DATE = "2018-01-01"  # 7 anni di storia (sufficiente per pattern stagionali)
 END_DATE = TODAY.strftime("%Y-%m-%d")  # Sempre aggiornato a OGGI
@@ -51,7 +47,7 @@ RECENT_WINDOW = 60  # Mostra ultimi 60 giorni nei grafici
 np.random.seed(42)
 
 print("="*70)
-print(f"📅 FORECAST CONFIGURATION")
+print(f" FORECAST CONFIGURATION")
 print("="*70)
 print(f"Today's Date:              {TODAY.strftime('%A, %B %d, %Y')}")
 print(f"Historical Data:           {START_DATE} → {END_DATE} (~7 years)")
@@ -60,10 +56,7 @@ print(f"Extended Forecast:         {FORECAST_START.strftime('%Y-%m-%d')} → {FO
 print(f"Key Features Window:       Last 10-50 days")
 print("="*70 + "\n")
 
-# ============================================================================
-# 1. DATA ACQUISITION
-# ============================================================================
-print("📊 Downloading market data with advanced indicators...")
+print(" Downloading market data with advanced indicators...")
 
 def safe_download(ticker, name):
     try:
@@ -104,7 +97,7 @@ tlt = safe_download("TLT", "US 20Y Treasury")
 ief = safe_download("IEF", "US 7-10Y Treasury")
 
 if len(eur_sek) == 0:
-    print("\n❌ CRITICAL: Cannot download EUR/SEK data")
+    print("\n CRITICAL: Cannot download EUR/SEK data")
     exit(1)
 
 # Build DataFrame
@@ -125,12 +118,9 @@ data['tlt'] = tlt if len(tlt) > 0 else 100
 data['ief'] = ief if len(ief) > 0 else 100
 
 data = data.ffill().bfill()
-print(f"\n✅ Dataset: {len(data)} observations, {data.shape[1]} features\n")
+print(f"\n Dataset: {len(data)} observations, {data.shape[1]} features\n")
 
-# ============================================================================
-# 2. ADVANCED FEATURE ENGINEERING
-# ============================================================================
-print("🔧 Engineering advanced features...")
+print(" Engineering advanced features...")
 
 df = data.copy()
 
@@ -196,11 +186,8 @@ for horizon in [1, 3, 5, 10]:
     df[f'target_{horizon}d'] = df['eur_sek'].shift(-horizon)
 
 df = df.replace([np.inf, -np.inf], np.nan).dropna()
-print(f"✅ Features: {df.shape[1]} columns, {len(df)} rows\n")
+print(f" Features: {df.shape[1]} columns, {len(df)} rows\n")
 
-# ============================================================================
-# 3. TRAIN/TEST SPLIT
-# ============================================================================
 train_size = int(len(df) * TRAIN_TEST_SPLIT)
 train_df = df.iloc[:train_size]
 test_df = df.iloc[train_size:]
@@ -215,12 +202,9 @@ X_test = test_df[feature_cols]
 y_train = train_df['target_5d']
 y_test = test_df['target_5d']
 
-print(f"📊 Train: {len(X_train)} | Test: {len(X_test)}\n")
+print(f" Train: {len(X_train)} | Test: {len(X_test)}\n")
 
-# ============================================================================
-# 4. MODEL 1: ARIMA (Trend & Linear Patterns)
-# ============================================================================
-print("🔮 Training Model 1: ARIMA (Classical Time Series)...")
+print(" Training Model 1: ARIMA (Classical Time Series)...")
 
 try:
     # Fit ARIMA on returns (stationary)
@@ -238,15 +222,12 @@ try:
         arima_pred_prices.append(arima_pred_prices[-1] * (1 + ret))
     arima_pred_test = np.array(arima_pred_prices[1:])
     
-    print(f"  ✓ ARIMA trained (order 2,0,2)")
+    print(f"  ARIMA trained (order 2,0,2)")
 except Exception as e:
-    print(f"  ✗ ARIMA failed: {e}")
+    print(f"  ARIMA failed: {e}")
     arima_pred_test = np.full(len(test_df), test_df['eur_sek'].mean())
 
-# ============================================================================
-# 5. MODEL 2: GARCH (Volatility Forecasting)
-# ============================================================================
-print("📉 Training Model 2: GARCH (Volatility Regime)...")
+print(" Training Model 2: GARCH (Volatility Regime)...")
 
 try:
     garch_returns = train_df['eur_sek'].pct_change().dropna() * 100
@@ -257,15 +238,12 @@ try:
     garch_forecast = garch_fitted.forecast(horizon=len(test_df))
     garch_vol = np.sqrt(garch_forecast.variance.values[-1, :])
     
-    print(f"  ✓ GARCH(1,1) trained")
+    print(f"  GARCH(1,1) trained")
 except Exception as e:
-    print(f"  ✗ GARCH failed: {e}")
+    print(f"  GARCH failed: {e}")
     garch_vol = np.ones(len(test_df)) * 0.5
 
-# ============================================================================
-# 6. MODEL 3: XGBoost (Non-linear Patterns)
-# ============================================================================
-print("⚡ Training Model 3: XGBoost (Gradient Boosting)...")
+print(" Training Model 3: XGBoost (Gradient Boosting)...")
 
 scaler_xgb = RobustScaler()
 X_train_xgb_scaled = scaler_xgb.fit_transform(X_train)
@@ -286,10 +264,7 @@ xgb_model.fit(X_train_xgb_scaled, y_train)
 xgb_pred_test = xgb_model.predict(X_test_xgb_scaled)
 print(f"  ✓ XGBoost trained (500 trees)")
 
-# ============================================================================
-# 7. MODEL 4: Bidirectional LSTM (Sequential Patterns)
-# ============================================================================
-print("🧠 Training Model 4: Bi-LSTM (Deep Learning)...")
+print(" Training Model 4: Bi-LSTM (Deep Learning)...")
 
 # Prepare sequences
 scaler_lstm = StandardScaler()
@@ -342,11 +317,8 @@ lstm_pred_test[LOOK_BACK:] = lstm_pred_test_raw
 
 print(f"  ✓ Bi-LSTM trained ({len(history.history['loss'])} epochs)")
 
-# ============================================================================
-# 8. MODEL 5: Prophet (Seasonality)
-# ============================================================================
 if PROPHET_AVAILABLE:
-    print("📅 Training Model 5: Prophet (Seasonal Decomposition)...")
+    print(" Training Model 5: Prophet (Seasonal Decomposition)...")
     try:
         prophet_df = train_df[['eur_sek']].reset_index()
         prophet_df.columns = ['ds', 'y']
@@ -363,17 +335,14 @@ if PROPHET_AVAILABLE:
         prophet_forecast = prophet_model.predict(future)
         prophet_pred_test = prophet_forecast['yhat'].iloc[-len(test_df):].values
         
-        print(f"  ✓ Prophet trained")
+        print(f" Prophet trained")
     except Exception as e:
-        print(f"  ✗ Prophet failed: {e}")
+        print(f" Prophet failed: {e}")
         prophet_pred_test = np.full(len(test_df), test_df['eur_sek'].mean())
 else:
     prophet_pred_test = np.full(len(test_df), test_df['eur_sek'].mean())
 
-# ============================================================================
-# 9. META-STACKING (Level-2 Model)
-# ============================================================================
-print("🎯 Training Meta-Learner (Stacking Ensemble)...")
+print(" Training Meta-Learner (Stacking Ensemble)...")
 
 # Create meta-features (predictions from all models)
 meta_features_test = pd.DataFrame({
@@ -423,9 +392,6 @@ ensemble_pred_test = meta_model.predict(meta_features_test)
 
 print(f"  ✓ Meta-model weights: {dict(zip(meta_features_test.columns, meta_model.coef_.round(3)))}\n")
 
-# ============================================================================
-# 10. PERFORMANCE EVALUATION
-# ============================================================================
 mae = np.mean(np.abs(ensemble_pred_test - y_test))
 rmse = np.sqrt(np.mean((ensemble_pred_test - y_test)**2))
 mape = np.mean(np.abs((y_test - ensemble_pred_test) / y_test)) * 100
@@ -435,18 +401,15 @@ pred_direction = np.sign(ensemble_pred_test - test_df['eur_sek'].values)
 directional_acc = np.mean(actual_direction == pred_direction) * 100
 
 print("="*70)
-print("📊 HYBRID MODEL PERFORMANCE (5-day ahead)")
+print(" HYBRID MODEL PERFORMANCE (5-day ahead)")
 print("="*70)
 print(f"MAE:                  {mae:.4f} SEK")
 print(f"RMSE:                 {rmse:.4f} SEK")
 print(f"MAPE:                 {mape:.2f}%")
-print(f"Directional Accuracy: {directional_acc:.1f}% ⭐⭐")
+print(f"Directional Accuracy: {directional_acc:.1f}% ")
 print("="*70 + "\n")
 
-# ============================================================================
-# 11. FORWARD FORECAST (Extended)
-# ============================================================================
-print(f"🔮 Generating hybrid forecast from TODAY → {FORECAST_END_DATE}...")
+print(f" Generating hybrid forecast from TODAY → {FORECAST_END_DATE}...")
 
 # IMPORTANTE: Il forecast parte SEMPRE da OGGI, non dall'ultima data dati
 forecast_end = pd.to_datetime(FORECAST_END_DATE)
@@ -455,8 +418,8 @@ last_data_date = df.index[-1]
 # Calcola giorni mancanti tra ultima data e oggi
 days_gap = (TODAY.date() - last_data_date.date()).days
 if days_gap > 0:
-    print(f"  ⚠️  Data gap detected: Last data is {last_data_date.strftime('%Y-%m-%d')}, today is {TODAY.strftime('%Y-%m-%d')}")
-    print(f"      Gap: {days_gap} days - forecast will start from TODAY anyway")
+    print(f"    Data gap detected: Last data is {last_data_date.strftime('%Y-%m-%d')}, today is {TODAY.strftime('%Y-%m-%d')}")
+    print(f"    Gap: {days_gap} days - forecast will start from TODAY anyway")
 
 # Il forecast parte da OGGI (non dall'ultima data disponibile)
 all_forecast_dates = pd.date_range(TODAY + timedelta(days=1), end=forecast_end, freq='B')
@@ -491,9 +454,6 @@ pred_std = np.std([xgb_pred_test, lstm_pred_test[~np.isnan(lstm_pred_test)]], ax
 forecast_df_short['lower_bound'] = forecast_df_short['eur_sek_forecast'] - 1.96 * pred_std
 forecast_df_short['upper_bound'] = forecast_df_short['eur_sek_forecast'] + 1.96 * pred_std
 
-# ============================================================================
-# 12. TACTICAL DECISION
-# ============================================================================
 best_day = forecast_df_short['eur_sek_forecast'].idxmax()
 best_rate = forecast_df_short['eur_sek_forecast'].max()
 best_cost = 7300 / best_rate
@@ -502,7 +462,7 @@ threshold = 11.05
 good_days = forecast_df_short[forecast_df_short['eur_sek_forecast'] >= threshold]
 
 print("="*70)
-print("💰 HYBRID MODEL TACTICAL RECOMMENDATION")
+print(" HYBRID MODEL TACTICAL RECOMMENDATION")
 print("="*70)
 print(f"Analysis Date:        {TODAY.strftime('%A, %B %d, %Y')}")
 print(f"Last Data Available:  {df.index[-1].strftime('%Y-%m-%d')}")
@@ -510,7 +470,7 @@ print(f"Current EUR/SEK:      {last_known_price:.4f}")
 print(f"Your Rent:            7300 SEK")
 print(f"Current Cost:         {7300/last_known_price:.2f} EUR")
 print(f"\nForecast Horizon:     {FORECAST_DAYS} business days from TODAY")
-print("\n🎯 OPTIMAL PAYMENT DAY:")
+print("\n OPTIMAL PAYMENT DAY:")
 print(f"   Date:              {best_day.strftime('%Y-%m-%d (%A)')}")
 print(f"   Days from today:   {(best_day.date() - TODAY.date()).days} days")
 print(f"   Predicted Rate:    {best_rate:.4f}")
@@ -518,25 +478,19 @@ print(f"   Expected Cost:     {best_cost:.2f} EUR")
 print(f"   Savings vs today:  {(7300/last_known_price - best_cost):.2f} EUR")
 
 if len(good_days) > 0:
-    print(f"\n✅ Favorable days (≥{threshold}): {len(good_days)}")
+    print(f"\n Favorable days (≥{threshold}): {len(good_days)}")
     print("\nTop 5 opportunities:")
     top = forecast_df_short.nlargest(5, 'eur_sek_forecast')[['eur_sek_forecast', 'lower_bound', 'upper_bound']]
     top['cost_eur'] = 7300 / top['eur_sek_forecast']
     print(top.to_string())
 else:
-    print(f"\n⚠️  No days above {threshold} predicted")
+    print(f"\n  No days above {threshold} predicted")
 
 print("="*70 + "\n")
 
-# ============================================================================
-# 13. VISUALIZATION
-# ============================================================================
-
-# CHART 1: Full Forecast
 fig1 = plt.figure(figsize=(16, 8))
 ax = fig1.add_subplot(111)
 
-# Mostra ultimi RECENT_WINDOW giorni
 recent_cutoff = max(0, len(df) - RECENT_WINDOW)
 ax.plot(df.index[recent_cutoff:], df['eur_sek'].iloc[recent_cutoff:], 
         label=f'Historical (Last {RECENT_WINDOW} days)', color='steelblue', linewidth=2)
@@ -556,7 +510,7 @@ ax.axhline(11.05, color='yellowgreen', linestyle='--', alpha=0.5)
 ax.axhline(last_known_price, color='gray', linestyle=':', linewidth=2)
 ax.scatter(best_day, best_rate, color='gold', s=300, marker='*', 
            edgecolors='black', linewidths=2, zorder=10, 
-           label=f'⭐ Optimal: {best_day.strftime("%b %d")} (+{(best_day.date()-TODAY.date()).days}d)')
+           label=f' Optimal: {best_day.strftime("%b %d")} (+{(best_day.date()-TODAY.date()).days}d)')
 
 ax.set_title(f'EUR/SEK Hybrid Forecast - Analysis from {TODAY.strftime("%B %d, %Y")}\n(ARIMA+GARCH+XGB+LSTM+Prophet)', 
              fontsize=16, fontweight='bold')
@@ -567,10 +521,8 @@ ax.grid(alpha=0.3)
 plt.tight_layout()
 plt.show()
 
-# CHART 2: Tactical Decision (30 days)
 fig2, (ax1, ax2) = plt.subplots(2, 1, figsize=(14, 10))
 
-# Mostra ultimi giorni recenti + forecast
 recent_cutoff = max(0, len(df) - RECENT_WINDOW)
 ax1.plot(df.index[recent_cutoff:], df['eur_sek'].iloc[recent_cutoff:], 
          label=f'Recent History (Last {RECENT_WINDOW} days)', color='steelblue', linewidth=2)
@@ -581,7 +533,6 @@ ax1.fill_between(forecast_df_short.index,
                   forecast_df_short['upper_bound'],
                   alpha=0.2, color='red', label='95% Confidence')
 
-# TODAY marker
 ax1.axvline(TODAY, color='black', linestyle='-', linewidth=3, alpha=0.7,
             label=f'TODAY ({TODAY.strftime("%b %d")})')
 
@@ -590,7 +541,7 @@ ax1.scatter(best_day, best_rate, color='gold', s=300, marker='*',
             edgecolors='black', linewidths=3, zorder=10,
             label=f'⭐ PAY HERE: {best_day.strftime("%b %d")} (+{(best_day.date()-TODAY.date()).days}d)')
 
-ax1.set_title(f'🎯 TACTICAL: When to Pay Rent (Next {FORECAST_DAYS} Days from TODAY)', 
+ax1.set_title(f' TACTICAL: When to Pay Rent (Next {FORECAST_DAYS} Days from TODAY)', 
               fontsize=14, fontweight='bold')
 ax1.set_ylabel('EUR/SEK', fontsize=12)
 ax1.legend(fontsize=10, loc='best')
@@ -603,7 +554,7 @@ ax2.axhline(7300/last_known_price, color='gray', linestyle=':', linewidth=2)
 ax2.axhline(7300/11.17, color='green', linestyle='--', alpha=0.6)
 ax2.scatter(best_day, best_cost, color='gold', s=300, marker='*',
             edgecolors='black', linewidths=3, zorder=10)
-ax2.set_title('💰 Rent Cost (7300 SEK → EUR)', fontsize=12, fontweight='bold')
+ax2.set_title(' Rent Cost (7300 SEK → EUR)', fontsize=12, fontweight='bold')
 ax2.set_xlabel('Date', fontsize=12)
 ax2.set_ylabel('Cost (EUR)', fontsize=12)
 ax2.legend(['Daily Cost', f'Current: {7300/last_known_price:.2f}', 'Best: 653.45',
@@ -614,14 +565,14 @@ ax2.invert_yaxis()
 plt.tight_layout()
 plt.show()
 
-print("\n✅ Hybrid model complete!")
-print(f"📊 Model Stack: ARIMA(trend) + GARCH(volatility) + XGBoost(non-linear) + Bi-LSTM(sequences) + Prophet(seasonality)")
-print(f"📅 Analysis Date: {TODAY.strftime('%A, %B %d, %Y')}")
-print(f"🎯 Forecast: {FORECAST_DAYS} business days from TODAY")
-print(f"⭐ Optimal payment day: {best_day.strftime('%Y-%m-%d')} ({(best_day.date()-TODAY.date()).days} days from now)")
-print(f"💰 Expected savings: {(7300/last_known_price - best_cost):.2f} EUR vs paying today")
+print("\n Hybrid model complete!")
+print(f" Model Stack: ARIMA(trend) + GARCH(volatility) + XGBoost(non-linear) + Bi-LSTM(sequences) + Prophet(seasonality)")
+print(f" Analysis Date: {TODAY.strftime('%A, %B %d, %Y')}")
+print(f" Forecast: {FORECAST_DAYS} business days from TODAY")
+print(f" Optimal payment day: {best_day.strftime('%Y-%m-%d')} ({(best_day.date()-TODAY.date()).days} days from now)")
+print(f" Expected savings: {(7300/last_known_price - best_cost):.2f} EUR vs paying today")
 print("\n" + "="*70)
-print("📌 WHAT THE MODEL USES:")
+print(" WHAT THE MODEL USES:")
 print("="*70)
 print(f"• Historical data:     2018 → {df.index[-1].strftime('%Y-%m-%d')} (~{len(df)} days)")
 print(f"• Key features:        Last 10-50 days for moving averages")
